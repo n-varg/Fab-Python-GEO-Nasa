@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Obtener ubicación</title>
+</head>
+<body>
+    <button onclick="obtenerUbicacion()">Obtener Ubicación</button>
+    <p id="ubicacion"></p>
+
+    <script>
+        function obtenerUbicacion() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(mostrarPosicion);
+            } else {
+                document.getElementById("ubicacion").innerHTML = "La geolocalización no es soportada por este navegador.";
+            }
+        }
+
+        function mostrarPosicion(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            document.getElementById("ubicacion").innerHTML = "Latitud: " + lat + "<br>Longitud: " + lon;
+            
+            // Aquí podrías enviar la latitud y longitud a tu API o servidor Python
+            fetch('/tu-ruta-python', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ latitude: lat, longitude: lon }),
+            });
+        }
+    </script>
+</body>
+</html>
