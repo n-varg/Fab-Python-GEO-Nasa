@@ -1,35 +1,363 @@
-<!DOCTYPE html>
 <html>
 <head>
-    <title>Obtener ubicación</title>
-</head>
-<body>
-    <button onclick="obtenerUbicacion()">Obtener Ubicación</button>
-    <p id="ubicacion"></p>
+    <base href="https://nasa.gov/">
+    <title>ClimateGuardian: NASA's Early Warning System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Exo 2', sans-serif;
+            background-color: #000814;
+            color: #E0E1DD;
+            overflow-x: hidden;
+        }
 
-    <script>
-        function obtenerUbicacion() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(mostrarPosicion);
-            } else {
-                document.getElementById("ubicacion").innerHTML = "La geolocalización no es soportada por este navegador.";
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #001F54, #034078);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+            color: #FFC300;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .globe-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #globeCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(3, 64, 120, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 300px;
+        }
+
+        .event-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .event-item {
+            background: rgba(255, 195, 0, 0.1);
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .event-item:hover {
+            background: rgba(255, 195, 0, 0.2);
+        }
+
+        .rocket-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .rocket-button:hover {
+            transform: translateY(-5px);
+        }
+
+        .rocket-icon {
+            width: 30px;
+            height: 30px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #001F54, #034078);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #FFC300;
+            width: 70%;
+            max-width: 600px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(255, 195, 0, 0.2);
+        }
+
+        .close {
+            color: #FFC300;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #FFD60A;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 195, 0, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(255, 195, 0, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 195, 0, 0);
             }
         }
 
-        function mostrarPosicion(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            document.getElementById("ubicacion").innerHTML = "Latitud: " + lat + "<br>Longitud: " + lon;
-            
-            // Aquí podrías enviar la latitud y longitud a tu API o servidor Python
-            fetch('/tu-ruta-python', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ latitude: lat, longitude: lon }),
-            });
+        .recommendations {
+            background: rgba(3, 64, 120, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
         }
+
+        .recommendation-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .recommendation-item {
+            background: rgba(255, 195, 0, 0.1);
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .notification-bar {
+            background: #FFC300;
+            color: #000814;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>ClimateGuardian: NASA's Early Warning System</h1>
+        </header>
+        
+        <div class="notification-bar" id="notificationBar">
+            New climate event detected! Check the map for details.
+        </div>
+
+        <div class="globe-container">
+            <canvas id="globeCanvas"></canvas>
+            <div class="overlay">
+                <h2>Active Climate Events</h2>
+                <ul class="event-list" id="eventList">
+                    <!-- Event items will be dynamically added here -->
+                </ul>
+                <!-- Botón para obtener la ubicación -->
+                <button onclick="obtenerUbicacion()">Obtener Ubicación</button>
+                <p id="ubicacion"></p>
+            </div>
+        </div>
+
+        <div id="eventModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modalTitle"></h2>
+                <p id="modalDescription"></p>
+                <div class="recommendations">
+                    <h3>Safety Recommendations</h3>
+                    <ul class="recommendation-list" id="recommendationList">
+                        <!-- Recommendations will be dynamically added here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, globe;
+        let eventMarkers = [];
+
+        function initScene() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('globeCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            const geometry = new THREE.SphereGeometry(5, 32, 32);
+            const texture = new THREE.TextureLoader().load('https://i.imgur.com/ggPxsfd.jpg');
+            const material = new THREE.MeshPhongMaterial({ map: texture });
+            globe = new THREE.Mesh(geometry, material);
+            scene.add(globe);
+
+            const light = new THREE.PointLight(0xffffff, 1, 100);
+            light.position.set(10, 10, 10);
+            scene.add(light);
+
+            camera.position.z = 15;
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            globe.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        }
+
+        function addEventMarker(lat, lon, eventType) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const radius = 5.1;
+
+            const x = -radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.cos(phi);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+
+            const markerGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+            const markerMaterial = new THREE.MeshBasicMaterial({ color: getEventColor(eventType) });
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            
+            marker.position.set(x, y, z);
+            scene.add(marker);
+            eventMarkers.push(marker);
+
+            addEventToList(eventType, lat, lon);
+        }
+
+        function getEventColor(eventType) {
+            switch(eventType) {
+                case 'flood':
+                    return 0x00aaff;
+                case 'wildfire':
+                    return 0xff4500;
+                case 'hurricane':
+                    return 0x228b22;
+                default:
+                    return 0xffffff;
+            }
+        }
+
+        function addEventToList(eventType, lat, lon) {
+            const eventList = document.getElementById('eventList');
+            const listItem = document.createElement('li');
+            listItem.className = 'event-item';
+            listItem.innerHTML = `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} at ${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+            listItem.onclick = function() {
+                showEventDetails(eventType);
+            };
+            eventList.appendChild(listItem);
+        }
+
+        function showEventDetails(eventType) {
+            const modal = document.getElementById('eventModal');
+            document.getElementById('modalTitle').innerText = `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Event`;
+            document.getElementById('modalDescription').innerText = `Details about the ${eventType} event.`;
+            const recommendationList = document.getElementById('recommendationList');
+            recommendationList.innerHTML = ''; // Clear previous recommendations
+            const recommendations = getRecommendations(eventType);
+            recommendations.forEach(rec => {
+                const listItem = document.createElement('li');
+                listItem.className = 'recommendation-item';
+                listItem.innerText = rec;
+                recommendationList.appendChild(listItem);
+            });
+            modal.style.display = "block";
+        }
+
+        function getRecommendations(eventType) {
+            switch(eventType) {
+                case 'flood':
+                    return ["Move to higher ground.", "Avoid walking or driving through flood waters."];
+                case 'wildfire':
+                    return ["Evacuate if advised.", "Stay indoors and keep windows closed."];
+                case 'hurricane':
+                    return ["Follow evacuation orders.", "Prepare an emergency kit."];
+                default:
+                    return ["Stay informed through local news."];
+            }
+        }
+
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('eventModal').style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('eventModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // Función para obtener la ubicación
+        function obtenerUbicacion() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    document.getElementById('ubicacion').innerText = `Ubicación: Latitud ${lat}, Longitud ${lon}`;
+                    // Aquí puedes añadir un evento a la lista
+                    addEventMarker(lat, lon, 'flood'); // Por ejemplo, un evento de inundación
+                }, function() {
+                    document.getElementById('ubicacion').innerText = "Error al obtener la ubicación.";
+                });
+            } else {
+                document.getElementById('ubicacion').innerText = "Geolocalización no es soportada por este navegador.";
+            }
+        }
+
+        window.onload = function() {
+            initScene();
+        };
     </script>
 </body>
 </html>
