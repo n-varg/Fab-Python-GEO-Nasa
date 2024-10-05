@@ -5,184 +5,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            font-family: 'Exo 2', sans-serif;
-            background-color: #000814;
-            color: #E0E1DD;
-            overflow-x: hidden;
-        }
-
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        header {
-            background: linear-gradient(135deg, #001F54, #034078);
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 2.5em;
-            color: #FFC300;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .globe-container {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-
-        #globeCanvas {
-            width: 100%;
-            height: 100%;
-        }
-
-        .overlay {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(3, 64, 120, 0.8);
-            border-radius: 10px;
-            padding: 20px;
-            max-width: 300px;
-        }
-
-        .event-list {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .event-item {
-            background: rgba(255, 195, 0, 0.1);
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            display: flex;
-            align-items: center;
-        }
-
-        .event-item:hover {
-            background: rgba(255, 195, 0, 0.2);
-        }
-
-        .rocket-button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            margin-right: 10px;
-            transition: transform 0.3s ease;
-        }
-
-        .rocket-button:hover {
-            transform: translateY(-5px);
-        }
-
-        .rocket-icon {
-            width: 30px;
-            height: 30px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #001F54, #034078);
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #FFC300;
-            width: 70%;
-            max-width: 600px;
-            border-radius: 15px;
-            box-shadow: 0 4px 8px rgba(255, 195, 0, 0.2);
-        }
-
-        .close {
-            color: #FFC300;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: #FFD60A;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(255, 195, 0, 0.7);
-            }
-            70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(255, 195, 0, 0);
-            }
-            100% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(255, 195, 0, 0);
-            }
-        }
-
-        .recommendations {
-            background: rgba(3, 64, 120, 0.8);
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .recommendation-list {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .recommendation-item {
-            background: rgba(255, 195, 0, 0.1);
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .notification-bar {
-            background: #FFC300;
-            color: #000814;
-            text-align: center;
-            padding: 10px;
-            font-weight: bold;
-            display: none;
-        }
+        /* (Aquí va tu CSS existente) */
     </style>
 </head>
 <body>
@@ -205,6 +28,7 @@
                 <!-- Botón para obtener la ubicación -->
                 <button onclick="obtenerUbicacion()">Obtener Ubicación</button>
                 <p id="ubicacion"></p>
+                <div id="eventosCercanos"></div> <!-- Contenedor para mostrar eventos cercanos -->
             </div>
         </div>
 
@@ -345,13 +169,42 @@
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     document.getElementById('ubicacion').innerText = `Ubicación: Latitud ${lat}, Longitud ${lon}`;
-                    // Aquí puedes añadir un evento a la lista
-                    addEventMarker(lat, lon, 'flood'); // Por ejemplo, un evento de inundación
+                    
+                    // Enviar la ubicación al servidor Flask
+                    fetch('/obtener_eventos', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ lat: lat, lon: lon })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        mostrarEventosCercanos(data);
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+
                 }, function() {
                     document.getElementById('ubicacion').innerText = "Error al obtener la ubicación.";
                 });
             } else {
                 document.getElementById('ubicacion').innerText = "Geolocalización no es soportada por este navegador.";
+            }
+        }
+
+        function mostrarEventosCercanos(eventos) {
+            const contenedorEventos = document.getElementById('eventosCercanos');
+            contenedorEventos.innerHTML = ''; // Limpiar el contenedor
+            if (eventos.length > 0) {
+                eventos.forEach(evento => {
+                    const item = document.createElement('div');
+                    item.innerText = `${evento.titulo} a ${evento.distancia_km.toFixed(2)} km`;
+                    contenedorEventos.appendChild(item);
+                });
+            } else {
+                contenedorEventos.innerText = "No hay eventos dentro de un radio de 200 km.";
             }
         }
 
