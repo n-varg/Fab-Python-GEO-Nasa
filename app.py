@@ -52,7 +52,7 @@ def obtener_eventos():
                 # Calcular la distancia entre tu ubicación y el evento
                 distancia = calcular_distancia(mi_lat, mi_lon, lat_evento, lon_evento)
 
-                if distancia <= 200:  # Si el evento está dentro de los 200 km
+                if distancia <= 10000:  # Si el evento está dentro de los 200 km
                     eventos_cercanos.append({
                         "titulo": evento['title'],
                         "distancia_km": distancia,
